@@ -1,0 +1,76 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FestPass 2026</title>
+</head>
+<body>
+    <h1>FestPass 2026 Registrations</h1>
+    <p id="status">Checking backend...</p>
+
+    <form id="form">
+        <input id="name" placeholder="Your name" required>
+        <select id="event">
+            <option>Hackathon</option>
+            <option>Robo Race</option>
+            <option>Tech Quiz</option>
+        </select>
+        <button type="submit">Register</button>
+    </form>
+
+    <ul id="list"></ul>
+
+    <script>
+        async function api(path, options) {
+            const response = await fetch("/api/" + path, options);
+            if (!response.ok) throw new Error("API request failed");
+            return response.json();
+        }
+
+        async function refresh() {
+            try {
+                const health = await api("health");
+                document.getElementById("status").textContent =
+                    "REGNO: " + health.regno +
+                    " | Database: " + health.database;
+
+                const registrations = await api("registrations");
+                document.getElementById("list").replaceChildren(
+                    ...registrations.map(r => {
+                        const li = document.createElement("li");
+                        li.textContent = r.name + " - " + r.event;
+                        return li;
+                    })
+                );
+            } catch {
+                document.getElementById("status").textContent =
+                    "Backend unavailable";
+            }
+        }
+
+        document.getElementById("form").addEventListener("submit", async e => {
+            e.preventDefault();
+
+            try {
+                await api("registrations", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        name: document.getElementById("name").value,
+                        event: document.getElementById("event").value
+                    })
+                });
+
+                document.getElementById("name").value = "";
+                await refresh();
+            } catch {
+                document.getElementById("status").textContent =
+                    "Registration failed";
+            }
+        });
+
+        refresh();
+    </script>
+</body>
+</html>
